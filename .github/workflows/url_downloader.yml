@@ -21,7 +21,7 @@ on:
         description: 'نام پایه برای بایگانی RAR (فقط در صورت تقسیم فایل استفاده می‌شود)'
         required: false
         type: string
-        default: 'archive'
+        default: ''
 
 jobs:
   download-and-conditionally-split:
@@ -73,7 +73,16 @@ jobs:
           
           if (( $(echo "$SIZE_MB > $THRESHOLD_MB" | bc -l) )); then
             echo "File size ${SIZE_MB}MB exceeds 99MB – splitting into 95MB RAR parts."
-            ARCHIVE_NAME="${{ github.event.inputs.archive_name }}"
+            
+            # If archive_name is empty, use the file's base name (without extension)
+            INPUT_ARCHIVE_NAME="${{ github.event.inputs.archive_name }}"
+            if [ -n "$INPUT_ARCHIVE_NAME" ]; then
+              ARCHIVE_NAME="$INPUT_ARCHIVE_NAME"
+            else
+              BASENAME="${FILENAME%.*}"
+              ARCHIVE_NAME="$BASENAME"
+            fi
+            
             rar a -v95m -m5 -ep1 "${ARCHIVE_NAME}.rar" "$FILENAME"
             
             # Remove original file after successful split
